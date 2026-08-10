@@ -1,7 +1,7 @@
-# niboshi-llm-wiki-ai 運用規約
+# niboshi-llm-wiki 運用規約
 
 このリポジトリは **LLM が維持管理する個人リサーチ wiki** の規約（schema 層）の正本である。
-wiki の実体は Cosense プロジェクト **https://scrapbox.io/niboshi-llm-wiki-ai** にあり、
+wiki の実体は Cosense プロジェクト **https://scrapbox.io/niboshi-llm-wiki** にあり、
 このリポジトリには wiki のコンテンツを置かない。
 
 元になったアイデア: https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
@@ -128,7 +128,7 @@ Cosense の価値はリンクグラフにある。リンクの質がそのまま
   リンクしたページが Infobox の表に捏造行として現れるため（§5）。
   他ページの本文で言及するときは平文で `summary` / `thesis` と書く。
   クリックで辿れるようにしたいときは **外部 URL 記法**
-  `[summary https://scrapbox.io/niboshi-llm-wiki-ai/summary]` を使う。
+  `[summary https://scrapbox.io/niboshi-llm-wiki/summary]` を使う。
   人間にはリンクとして見えるがリンクグラフには乗らないため、表を汚さない。
 - **操作ページ `[ingest]` `[query]` `[lint]` へも、指示行以外からリンクしない。**
   被リンクが未処理の指示のキューだから（§11）。導線には同じく外部 URL 記法を使う。
@@ -144,7 +144,7 @@ YAML frontmatter + Dataview に相当する機能。
 **その型にリンクしている全ページの値が自動で表に集計される。**
 
 ```
-cosense browseRelatedPages https://scrapbox.io/niboshi-llm-wiki-ai/summary
+cosense browseRelatedPages https://scrapbox.io/niboshi-llm-wiki/summary
 ```
 
 で全 summary の一覧表が TSV で得られる。これが index.md の代替であり、手書きより常に正しい。
@@ -533,7 +533,7 @@ Cosense の慣習に従い、**人間は自分の発言の行末にアイコン�
 未処理の指示は**マーカーの被リンク**で引く。手書きの inbox ページは作らない（§4）。
 
 ```
-cosense list1hopLinks https://scrapbox.io/niboshi-llm-wiki-ai/query
+cosense list1hopLinks https://scrapbox.io/niboshi-llm-wiki/query
 ```
 
 このため `[ingest]` `[query]` `[lint]` の 3 ページは実体を持たせる。本文は操作の説明と、
