@@ -290,20 +290,20 @@ PDF の論文なら本文テキストを抽出して置く。HTML 記事と扱�
 
 ### HTML 記事からの変換
 
-**`defuddle` で Markdown に変換してから Cosense 記法に写す。**
-karpathy が勧める Obsidian Web Clipper の抽出エンジンそのものなので、
-原著の取り込み経路をそのまま使うことになる。
+**`fetch-proxy`（https://github.com/mpppk/fetch-proxy）で取得してから Cosense 記法に写す。**
+
+`fetch-proxy` は Cloudflare Workers 上で任意の URL を取得するプロキシで、`as=md` で defuddle による本文抽出→Markdown 変換（失敗時は Browser Rendering に自動フォールバック）、`as=title` で `og:title` 優先のタイトル抽出を行う。karpathy が勧める Obsidian Web Clipper の抽出エンジン（defuddle）をサーバ側で実行しつつ CORS 対応をまとめて扱えるため、直接 `defuddle.md` を呼ぶより安定する。
 
 ```
-curl -sSL https://defuddle.md/<scheme を除いた URL>
+curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=md"    # Markdown 本文
+curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=title" # タイトル（og:title 優先）
+curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=html"  # 必要に応じ生 HTML
+# 例: curl -sSL "https://fetch.nibo.sh/example.com/blog/post?as=md"
 ```
 
-ホスト版は frontmatter 付きの Markdown を返す。npm の `defuddle` に CLI もある。
-見出しのアンカー、目次、パンくず、ナビゲーション、コードのフェンス判定は
-これで処理済みになる。
+`as=md` は本文のみの Markdown を返す（host 版 defuddle のような frontmatter は付かない）。`as=title` で得たタイトルと合わせ、summary の Infobox に流す。`author` / `published` / `description` は可能なら `as=html` で取得した HTML から補う。`source` は `url` に対応する。
 
-**frontmatter は summary の Infobox にそのまま流せる。**
-`author` / `published` / `description` が取れ、`source` は `url` に対応する。
+見出しのアンカー、目次、パンくず、ナビゲーション、コードのフェンス判定は `as=md` の時点で処理済みになる。
 
 #### Markdown から Cosense 記法へ
 
@@ -323,30 +323,31 @@ curl -sSL https://defuddle.md/<scheme を除いた URL>
 
 `*斜体*` を忘れやすい。`**太字**` だけ処理すると、画像キャプションが生のアスタリスクで残る。
 
-#### defuddle が落とすものを補う
+#### fetch-proxy でも補う必要があるもの
 
-2026-08-05 に 2 記事で実測した。次の 3 つは自分で拾う。
+`fetch-proxy` の `as=md` も内部では defuddle を使うため、2026-08-05 に 2 記事で実測した次の落としは同様に自分で拾うことがある。
 
-- **タイトルが短縮されることがある。** frontmatter の `title` ではなく **`og:title` を使う。**
+- **タイトルが短縮されることがある。** `as=md` の先頭行だけでなく **`as=title`（`og:title` 優先）の結果を使う。**
   実測: `Your agent needs a computer, not a container` と出るが、
-  og:title には `— introducing @cloudflare/computer` まで含まれる。§3 の「原題そのまま」に反する。
+  og:title には `— introducing @cloudflare/computer` まで含まれる。§3 の「原題そのまま」に反する。`fetch-proxy` は `as=title` で優先順位を解決しているため、そちらを正とする。
 - **引用の組織名が落ちる。** 発言者名と肩書は残るが、組織名はロゴ画像の
   `aria-label` / `alt` にあり、defuddle はロゴを装飾として捨てる。
-  実測: 引用 17 件すべてで組織名が消えた。元 HTML から拾い直し、
+  実測: 引用 17 件すべてで組織名が消えた。元 HTML（`as=html`）から拾い直し、
   `— 氏名 / 肩書 / 組織` の形に整える。
   **誰が言ったかは `credibility` と `caveats` に直結する**ので、ここは省略しない。
-- **著者名が frontmatter に入らないことがある。** 実測: MCP 記事では `author` が取れたが、
-  Cloudflare 記事では欠落し、本文の署名行ごと落ちた。元 HTML の署名から拾い直す。
+- **著者名が取れないことがある。** `as=md` は本文のみを返し `author` を含まないことがある。実測: MCP 記事では `author` が取れたが、
+  Cloudflare 記事では欠落し、本文の署名行ごと落ちた。元 HTML（`as=html`）の署名から拾い直す。
   Zenn は frontmatter に `author` を持たず、3 記事とも欠落した。
-- **埋め込みが `<iframe>` タグのまま残る。** defuddle は中身を展開しない。
+- **埋め込みが `<iframe>` タグのまま残ることがある。** defuddle は中身を展開せず、`fetch-proxy` は Browser Rendering にフォールバックするが、それでも残る場合がある。
   実測: Zenn の mermaid 図とリンクカードが計 10 件、`<iframe src="embed.zenn.studio/...">` の
-  1 行として残った。**図がそのまま失われる**ので、元 HTML から拾い直す。
+  1 行として残った。**図がそのまま失われる**ので、元 HTML（`as=html`）から拾い直す。
   Zenn の場合は iframe の `data-content` 属性に URL エンコードで実体が入っている。
   **mermaid は `[` を含むので必ず `code:<連番>.mermaid` ブロックに入れる**（§6 貼る前の点検）。
 
 #### 貼る前に戻すエスケープ
 
 **defuddle はコードブロック内のバックティックを `` \` `` とエスケープして出力する。**
+`fetch-proxy` の `as=md` も内部では defuddle を使うため同様に発生する。
 フェンス内でのエスケープは不要なので、これは defuddle 側の不具合である。
 そのまま貼るとコードが壊れるので、**コードブロック内に限り `` \` `` を `` ` `` に戻す。**
 実測: Cloudflare 記事で 6 箇所。テンプレートリテラルを含むコードがあると出る（MCP 記事では 0 件）。
@@ -354,9 +355,9 @@ curl -sSL https://defuddle.md/<scheme を除いた URL>
 **`\n` は戻さない。** JavaScript の文字列リテラルなど、原文が本来持っているエスケープである。
 実測: 同じ記事に 4 箇所あり、戻すとコードの意味が変わる。
 
-#### defuddle を使えないとき
+#### fetch-proxy でも取得できないとき
 
-ログイン必須・JS レンダリング等で取得できない場合は自前で変換する。
+`fetch-proxy` は `as=md` 取得失敗時に Browser Rendering にフォールバックするため、通常の JS レンダリングはそこで解決する。それでも取得できない場合（ログイン必須等）は自前で変換する。
 素朴にタグを剥がすと次が静かに落ちる。
 
 - 見出し末尾のアンカー（`<a class=anchor>#</a>` が残り `What changed#` になる）
