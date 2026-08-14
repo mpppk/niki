@@ -15,7 +15,7 @@ wiki の実体は Cosense プロジェクトにあり、このリポジトリに
 ## 0. 前提
 
 - 用途は **リサーチ**（特定テーマを継続的に深掘りし、thesis を育てる）。
-- **source は Cosense のページとして保持してもよいが必須ではない**。本文を転記した `#raw` ページとして保持することも、`🔖` bookmark として URL のみを保持することもできる。bookmark はページタイトルが URL のタイトル、本文に URL を持ち、必要に応じ `#bookmark` タグや保存日時を持つ。いずれの場合も外部ストレージや git には置かない。
+- **source は Cosense のページとして保持してもよいが必須ではない**。本文を転記した `#raw` ページとして保持することも、`🔖` bookmark として URL のみを保持することもできる。bookmark はページタイトルが URL のタイトルで、本文に URL を持つ。summary を書かない仮置きと、summary を直接書く場合の 2 通りがあり、タイトルと本文の作りは §6 識別で定める。いずれの場合も外部ストレージや git には置かない。
 - wiki は LLM が書き、人間は読む。人間の仕事はソースの選定・探索・問いを立てること。
 - 操作は `cosense` CLI（`@helpfeel/cosense-cli`）経由で行う。詳細は `cosense <command> --help`。
 - **ページの新規作成・編集はユーザーが明示的に指示した時のみ行う。** 閲覧・調査は随時よい。
@@ -173,7 +173,7 @@ cosense browseRelatedPages https://scrapbox.io/<project>/summary
   誤字修正でも `Updated` は更新されてしまうため、陳腐化の検出には使えない（§12 lint）。
 - **source ページ（`#raw` / `#bookmark`）に Infobox を持たせない。** `ingested` / `url` は summary 側と重複し、
   持たせても下記の制約でノイズが増えるだけである。
-- `raw` は対応する source ページ（`📄` または `🔖`）へのリンク。bookmark の summary を直接書く場合（`🔖` タイトルで型が `[summary]`）は `raw` を省略するか自身へのリンクとし、`url` で URL を保持する。
+- `raw` は対応する source ページ（`📄` または `🔖`）へのリンク。bookmark の summary を直接書く場合（`🔖` タイトルで型が `[summary]`）は `raw` を省略し、`url` で URL を保持する。対応する source ページが別に無いので、自身へのリンクは書かない。
 
 ### 制約（2026-08-05 に実地検証）
 
@@ -211,6 +211,12 @@ source を wiki と同じ名前空間に置くため、識別と扱いのルー�
 - **bookmark ページのタイトルは `🔖<URLのタイトル>`。** 同様に空白を入れない。例: `🔖Attention Is All You Need`。
   タイトルは URL のタイトルそのままを使い、日付等の付加はしない。bookmark は `#bookmark` タグや保存日時を本文に持つことがある。summary を直接書く場合は `[summary]` 型で同じ `🔖` タイトルを使う（§2）。
 - **本文 1 行目は `#raw`、`#bookmark` または `[summary]`。** raw ページは `#raw`、URLのみの仮置きは `#bookmark`、要約を伴う bookmark は `[summary]`。raw の 2 行目は対応する `[summary]` ページへのリンク、仮置き bookmark の 2 行目も対応する `[summary]` へのリンク（未作成なら空リンク）。bookmark summary は自身が `[summary]` なので 2 行目以降に URL と `#bookmark` タグ、保存日時を持ち、続けて `takeaways` 等の summary 節を書く。**Infobox は `#raw` / `#bookmark` ページには書かない**（§5）。出典のメタデータは summary 側が持つ。
+- **どのページが source 層かは、次の 1 つの判定で決める。** タイトルが `📄` で始まる、
+  または本文 1 行目が `#bookmark`。このどちらかに当たるページが source 層で、残りは wiki 層である。
+  **`🔖` タイトルでも本文 1 行目が `[summary]` の bookmark summary は wiki 層**である。
+  §8 の検索、§9 の矛盾検出、§12 の lint で「source を除く」と書いてあるのは、すべてこの判定を指す。
+  判定をここ 1 箇所に置くのは、印を増やしたときに検査側が取り残されるのを防ぐためである
+  （bookmark 導入時に実際に起きた）。
 - 極端に長い原文は章単位で分割する。連番は末尾に付ける。例: `📄<原題> (1/3)`。
   上限を超えると `previewEdit` が `request entity too large` で 400 を返す。
 - **上限は文字数ではなく、バイト数と行数の組み合わせで決まる**（2026-08-08 に実測）。
@@ -335,9 +341,11 @@ curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=html"  # 必要に応じ生 HT
   実測: 引用 17 件すべてで組織名が消えた。元 HTML（`as=html`）から拾い直し、
   `— 氏名 / 肩書 / 組織` の形に整える。
   **誰が言ったかは `credibility` と `caveats` に直結する**ので、ここは省略しない。
-- **著者名が取れないことがある。** `as=md` は本文のみを返し `author` を含まないことがある。実測: MCP 記事では `author` が取れたが、
-  Cloudflare 記事では欠落し、本文の署名行ごと落ちた。元 HTML（`as=html`）の署名から拾い直す。
-  Zenn は frontmatter に `author` を持たず、3 記事とも欠落した。
+- **著者名は `as=md` からは取れない。** `as=md` は本文のみを返すので、`author` は常に
+  元 HTML（`as=html`）の署名やメタタグから拾い直す。frontmatter が付く前提で書かない。
+  本文に署名行が残っていれば `as=md` からも読めるが、当てにはできない。
+  実測: Cloudflare 記事は本文の署名行ごと落ちた。Zenn の 3 記事は defuddle を直接呼んでいた頃も
+  frontmatter に `author` を持たず、いずれも元 HTML から拾う必要があった。
 - **埋め込みが `<iframe>` タグのまま残ることがある。** defuddle は中身を展開せず、`fetch-proxy` は Browser Rendering にフォールバックするが、それでも残る場合がある。
   実測: Zenn の mermaid 図とリンクカードが計 10 件、`<iframe src="embed.zenn.studio/...">` の
   1 行として残った。**図がそのまま失われる**ので、元 HTML（`as=html`）から拾い直す。
@@ -458,7 +466,7 @@ source が同じ名前空間にあるため、検索結果は wiki 層と source
    識別子のように文字列が似ていて意味が近いページ群では特に区別できない。
    特定タイトルが存在するかは `readPage` でページ本文を読んで確かめる。
 2. `cosense searchFullText <projectUrl> <query>` — 語句が確定しているとき。
-   **タイトルが `📄` で始まるページ、および本文 1 行目が `#bookmark` のページは、この段階では読み飛ばす。`🔖` タイトルでも型が `[summary]` の bookmark summary は読み飛ばさない。**
+   **source 層のページ（§6 識別）は、この段階では読み飛ばす。**
 3. `cosense browsePage <pageUrl>` で本体を読む。
 4. `cosense list1hopLinks` / `search1hopLinks` / `search2hopLinks` で周辺を辿る。
    単独ページでは見えない文脈がここで浮かぶ。
@@ -480,7 +488,7 @@ source ページを常に読むと、その分だけ確実にコンテキスト�
   該当行の直下にインデントして `⚠ [<summary のタイトル>] では〜としており矛盾` と書く。
 - 矛盾が解決したら、解決の根拠を書いた上で整理する。
 - `cosense searchFullText <projectUrl> '⚠'` で未解決の矛盾を一覧できる。
-  **結果からタイトルが `📄` または `🔖` で始まるページを除く。** 矛盾の注記は wiki 層にしか書かないので、
+  **結果から source 層のページを除く（§6 識別）。** 矛盾の注記は wiki 層にしか書かないので、
   source に出る `⚠` は原文が元から持っていた記号である（§6 改変の範囲）。
   この検索は `⚠️`（異体字セレクタ `U+FE0F` 付き）にも当たる。Cosense の全文検索は空白を
   区切りとして扱うため、`'⚠ '` のように末尾へ空白を足しても絞り込めない（2026-08-06 実地検証）。
@@ -628,9 +636,12 @@ LLM の出力を LLM が要約して確信度の根拠にすると、新しい�
 
 ### ingest（ソースの取り込み）
 
-1. source ページを作る。全文を保持する場合は `[📄<原題>]` として 1 行目 `#raw` で原文テキストをそのまま置く。URL のみでよい場合は `[🔖<URLのタイトル>]` として 1 行目 `#bookmark` で本文に URL と保存日時を持つ。summary を同時に書く bookmark については `[🔖<URLのタイトル>]` を `[summary]` 型で作り、本文に URL と `#bookmark` タグ、保存日時に続けて summary 節を書く（§6）。PDF もテキストを抽出して raw に置き、ファイル自体は URL で参照する（§6）。
+1. source ページを作る。全文を保持するなら raw、URL だけでよいなら仮置きの bookmark、
+   URL と要約を同時に書くなら bookmark summary。タイトルと本文の作りは §6 識別に従う。
+   PDF もテキストを抽出して raw に置き、ファイル自体は URL で参照する（§6 ファイル）。
 2. source（raw の本文または bookmark の URL 先）を読み、takeaways をユーザーと会話して確認する。
-3. summary ページを §7 の構成で作る。raw の場合は `[<原題>]`、bookmark で要約を同時に行う場合は上記 1 で作成した `[🔖<URLのタイトル>]` がそれに当たる。**本文中の固有名詞・概念はリンクにする。**
+3. summary ページを §7 の構成で作る。raw の場合は `[<原題>]` を新規に作り、
+   bookmark summary の場合は手順 1 で作ったページがそれに当たる。**本文中の固有名詞・概念はリンクにする。**
 4. source ページに戻り、その source が実際に論じている concept / person / organization に
    リンクを張る（§6）。bookmark summary の場合は自身の `takeaways` 内のリンクで兼ねる。
 5. 出てきた `[concept]` `[person]` `[organization]` ページを新規作成、または既存ページに追記する。
@@ -664,11 +675,11 @@ Cosense では機械的に検出できる。定期的に実行する。
 | 未処理の指示 | `cosense list1hopLinks <projectUrl>/ingest` `.../query` `.../lint` の被リンク（§11） |
 | マーカーの付け忘れ | `cosense searchFullText <projectUrl> 'yuki.icon'` のうち、行頭にマーカーの無い行。実行はせず次の会話で確認する（§11） |
 | 孤立ページ | `cosense listPages <projectUrl> --sort linked` の末尾（`linked: 0`）。入口ページ `[このwikiについて]`、`[log]` の日付ページ、操作ページ `[ingest]` `[query]` `[lint]`、プロフィールページ `[yuki]` は被リンクを持たないのが正常なので除く |
-| 取り込み漏れの原文 | 上記のうちタイトルが `📄` で始まるもの、または本文 1 行目が `#bookmark` のもの（対応する `[summary]` が未作成）。`🔖` タイトルで型が `[summary]` の bookmark summary は含まない |
-| リンク未付与の原文 | 各 source の `cosense list1hopLinks` が summary 1 本しか返さないもの。空リンクは現れないので、疑わしければ本文を読む（§8） |
+| 取り込み漏れの原文 | 上記のうち source 層のもの（§6 識別）で、対応する `[summary]` が未作成のもの |
+| リンク未付与の原文 | `#raw` ページのうち `cosense list1hopLinks` が summary 1 本しか返さないもの。空リンクは現れないので、疑わしければ本文を読む（§8）。`#bookmark` は本文を持たず、bookmark summary はリンクを自身の `takeaways` に持つので、どちらも対象外 |
 | 育ちすぎたハブ | `--sort linked` の先頭。pageRank 上位ページは分割を検討する |
 | 書くべきページ | `searchVector` の `exists: false`、および空リンクの被リンク数 |
-| 未解決の矛盾 | `cosense searchFullText <projectUrl> '⚠'`。タイトルが `📄` または `🔖` で始まるページは除く（§9） |
+| 未解決の矛盾 | `cosense searchFullText <projectUrl> '⚠'`。source 層は除く（§9） |
 | ソースの網羅性 | `cosense browseRelatedPages <projectUrl>/summary` の表を眺める |
 | 確信度の陳腐化 | `cosense browseRelatedPages <projectUrl>/thesis` の表で `reviewed` が古いもの |
 
