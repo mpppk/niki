@@ -45,7 +45,11 @@ karpathy の 3 層を Cosense 上に写像する。層の名前は原著のま�
 |---|---|
 | sources | Cosense の source ページ（`#raw` または `🔖` bookmark。詳細は §6） |
 | wiki | Cosense のそれ以外の全ページ |
-| schema | このリポジトリ（`AGENTS.md` が共通規約、`projects/` 下がプロジェクト定義） |
+| schema | このリポジトリ（`AGENTS.md` が共通規約、`docs/` が操作時の手続き、`projects/` 下がプロジェクト定義） |
+
+**`AGENTS.md` は規約、`docs/` は手続きを持つ。** 何が正しいかを定めるのが規約で、
+それをどうやるかが手続きである。手続きは対応する操作を実行するときだけ読めばよいので、
+常時読む `AGENTS.md` から外に出す。どこを読むかは各節が指す。
 
 管理対象の Cosense プロジェクトは `projects/` 下のディレクトリで定義する。各 `projects/<name>/` は当該プロジェクトのローカルなメタデータや補足（`config.json` 等）を置く場所であり、wiki 本体は常に Cosense 側にある。`AGENTS.md` に書かれた規約は全プロジェクトに共通で適用し、プロジェクト固有の事情だけを `projects/<name>/` 下に追記する。
 
@@ -179,22 +183,18 @@ cosense browseRelatedPages https://scrapbox.io/<project>/summary
 
 Cosense の Infobox 抽出は **LLM ベース**であり、構文的な転記ではない。
 `browsePage` のヘルプにも "hallucination または truncated と判定された Infobox は除外する"
-とある通り、抽出結果は常に正しいとは限らない。実際に次の 3 点を確認した。
+とある通り、抽出結果は常に正しいとは限らない。
 
-1. **反映に 1 分程度のラグがある。** ページ作成直後に `browseRelatedPages` を叩くと、
-   行は現れるが値が全て空になる。ingest 直後の確認は一呼吸おく。
+1. **反映に 1 分程度のラグがある。** ページ作成直後は行が現れても値が全て空になる。
+   ingest 直後の確認は一呼吸おく。
 2. **`table:infobox` を書いたページは、それ自体が定義ページになる。**
    そのページにリンクしている全ページが表の行として並び、
    **列に対応する記述が無くても値が捏造される。**
-   実測例: Infobox を持たない source ページが、summary ページの表に行として現れ、
-   本文に存在しない `gist` `kind` `raw` の値が生成された。
+   実測: Infobox を持たない source ページに、本文に存在しない `gist` `kind` `raw` が生成された。
 3. **その結果、`summary` / `thesis` にリンクしただけのページが索引を汚す。**
-   実測例: 型定義ページ 5 枚が説明文中で `[summary]` にリンクしていただけで、
-   summary の表に、各ページの本文から生成された偽の `gist` `raw` `url` を持つ 5 行が並んだ。
-   このため §4 に「instance 以外から `[summary]` / `[thesis]` へリンクしない」を置いている。
-   入口ページ `[このwikiについて]` から人間がクリックで辿れるようにするには、
-   外部 URL 記法を使えばよい（§4）。被リンクにならないので表は 0 行のまま保たれる。
-   実際にこの方法で、型定義ページを 9 枚作った状態で両方の表を 0 行に戻せることを確認した。
+   実測: 説明文中でリンクしていた型定義ページ 5 枚が、偽の `gist` `raw` `url` を持つ 5 行として並んだ。
+   §4 の「instance 以外からリンクしない」と外部 URL 記法はこれへの対処であり、
+   型定義ページ 9 枚の状態で両方の表を 0 行に戻せることを確認済み。
 
 したがって **信用してよいのは型定義ページ（`summary` / `thesis`）の表だけ**である。
 個々の summary / thesis ページに対して `browseRelatedPages` を使ってはならない（§8）。
@@ -269,24 +269,15 @@ PDF の論文なら本文テキストを抽出して置く。HTML 記事と扱�
   **ブラケットで囲んだ URL を Cosense は画像として埋め込み表示する。**
   ページリンクにはならないのでリンクグラフを汚さない。
 
-**画像は拡張子で終わる URL を使う。** クエリパラメータは落とす。
-
-- CDN のリサイズエンドポイント（`/_image?href=...&w=1430&f=webp` のような形）は
-  拡張子がクエリの中にあるため、画像と認識されず表示されない。
-  多くの場合 `href` パラメータに元画像の URL が入っているので、URL デコードして取り出す。
-- パスが拡張子で終わっていてもクエリが後続する形（`.../xxx.png?sha=...` など）は、
-  **クエリを落としてから使う。** 認識されるか賭けずに済む。
-  落とす前に、クエリ無しの URL が画像として取得できることを確認する。
-  実測: Zenn の `?sha=` は最適化版を指しており、有無で応答サイズが変わるが同じ図である。
-
-いずれの場合もクエリパラメータが落ちる分、リンク切れにも強くなる。
+**画像は拡張子で終わる URL を使い、クエリパラメータは落とす。**
+クエリの中に拡張子がある CDN のリサイズエンドポイントは画像と認識されない。
+直し方は `docs/convert-html.md` の「画像 URL の扱い」にある。
 
 ### URL 参照の代償
 
-これは原著からの意識的な逸脱である。原著は画像をローカルに落とすことを勧めており、
-理由として "URLs that may break" を挙げている。実際、**元 URL が切れれば図・レイアウト・
-表組みは失われる。** CDN のリサイズエンドポイントのようにクエリパラメータを含む URL は特に切れやすい。
-
+これは原著からの意識的な逸脱である。原著は "URLs that may break" を理由に画像をローカルへ
+落とすことを勧めており、実際 **元 URL が切れれば図・レイアウト・表組みは失われる。**
+クエリパラメータを含む URL は特に切れやすい。
 失われないのは原文ページに転記したテキストだけである。したがって:
 
 - **図・表が伝えている内容のうち重要なものは summary の `takeaways` に言葉で書く。**
@@ -297,98 +288,11 @@ PDF の論文なら本文テキストを抽出して置く。HTML 記事と扱�
 ### HTML 記事からの変換
 
 **`fetch-proxy`（https://github.com/mpppk/fetch-proxy）で取得してから Cosense 記法に写す。**
+手順は `docs/convert-html.md` に置く。HTML 記事を ingest するときはそれを読む。
 
-`fetch-proxy` は Cloudflare Workers 上で任意の URL を取得するプロキシで、`as=md` で defuddle による本文抽出→Markdown 変換（失敗時は Browser Rendering に自動フォールバック）、`as=title` で `og:title` 優先のタイトル抽出を行う。karpathy が勧める Obsidian Web Clipper の抽出エンジン（defuddle）をサーバ側で実行しつつ CORS 対応をまとめて扱えるため、直接 `defuddle.md` を呼ぶより安定する。
-
-```
-curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=md"    # Markdown 本文
-curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=title" # タイトル（og:title 優先）
-curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=html"  # 必要に応じ生 HTML
-# 例: curl -sSL "https://fetch.nibo.sh/example.com/blog/post?as=md"
-```
-
-`as=md` は本文のみの Markdown を返す（host 版 defuddle のような frontmatter は付かない）。`as=title` で得たタイトルと合わせ、summary の Infobox に流す。`author` / `published` / `description` は可能なら `as=html` で取得した HTML から補う。`source` は `url` に対応する。
-
-見出しのアンカー、目次、パンくず、ナビゲーション、コードのフェンス判定は `as=md` の時点で処理済みになる。
-
-#### Markdown から Cosense 記法へ
-
-| Markdown | Cosense |
-|---|---|
-| `[text](url)` | `[text url]`（**外部リンク記法**） |
-| `![alt](url)` | `(image) alt` の次行に `[url]`（埋め込み表示。§6 ファイル） |
-| ` ``` ` フェンス | `code:<連番>.<拡張子>` + 各行をインデント |
-| 表（`\|` 区切り） | `table:<連番>` + 各行をインデントし、セルをタブ区切り。`\|---\|` の区切り行は落とす |
-| `**太字**` | `[* 太字]`。ただし中に `[` を含むときは記号だけ落とす（入れ子を避ける） |
-| `*斜体*` | 記号を落として平文にする |
-| `## 見出し` | 平文行。Cosense に見出し記法は無い |
-| `> 引用` / `- 項目` | インデント 1 段 |
-
-`[text](url)` を**外部リンク記法**に写すのが要点である。本文中のリンク先 URL を
-保持したまま、リンクグラフには乗らないので concept ページの被リンクを汚さない（§4）。
-
-`*斜体*` を忘れやすい。`**太字**` だけ処理すると、画像キャプションが生のアスタリスクで残る。
-
-#### fetch-proxy でも補う必要があるもの
-
-`fetch-proxy` の `as=md` も内部では defuddle を使うため、2026-08-05 に 2 記事で実測した次の落としは同様に自分で拾うことがある。
-
-- **タイトルが短縮されることがある。** `as=md` の先頭行だけでなく **`as=title`（`og:title` 優先）の結果を使う。**
-  実測: `Your agent needs a computer, not a container` と出るが、
-  og:title には `— introducing @cloudflare/computer` まで含まれる。§3 の「原題そのまま」に反する。`fetch-proxy` は `as=title` で優先順位を解決しているため、そちらを正とする。
-- **引用の組織名が落ちる。** 発言者名と肩書は残るが、組織名はロゴ画像の
-  `aria-label` / `alt` にあり、defuddle はロゴを装飾として捨てる。
-  実測: 引用 17 件すべてで組織名が消えた。元 HTML（`as=html`）から拾い直し、
-  `— 氏名 / 肩書 / 組織` の形に整える。
-  **誰が言ったかは `credibility` と `caveats` に直結する**ので、ここは省略しない。
-- **著者名は `as=md` からは取れない。** `as=md` は本文のみを返すので、`author` は常に
-  元 HTML（`as=html`）の署名やメタタグから拾い直す。frontmatter が付く前提で書かない。
-  本文に署名行が残っていれば `as=md` からも読めるが、当てにはできない。
-  実測: Cloudflare 記事は本文の署名行ごと落ちた。Zenn の 3 記事は defuddle を直接呼んでいた頃も
-  frontmatter に `author` を持たず、いずれも元 HTML から拾う必要があった。
-- **埋め込みが `<iframe>` タグのまま残ることがある。** defuddle は中身を展開せず、`fetch-proxy` は Browser Rendering にフォールバックするが、それでも残る場合がある。
-  実測: Zenn の mermaid 図とリンクカードが計 10 件、`<iframe src="embed.zenn.studio/...">` の
-  1 行として残った。**図がそのまま失われる**ので、元 HTML（`as=html`）から拾い直す。
-  Zenn の場合は iframe の `data-content` 属性に URL エンコードで実体が入っている。
-  **mermaid は `[` を含むので必ず `code:<連番>.mermaid` ブロックに入れる**（§6 貼る前の点検）。
-
-#### 貼る前に戻すエスケープ
-
-**defuddle はコードブロック内のバックティックを `` \` `` とエスケープして出力する。**
-`fetch-proxy` の `as=md` も内部では defuddle を使うため同様に発生する。
-フェンス内でのエスケープは不要なので、これは defuddle 側の不具合である。
-そのまま貼るとコードが壊れるので、**コードブロック内に限り `` \` `` を `` ` `` に戻す。**
-実測: Cloudflare 記事で 6 箇所。テンプレートリテラルを含むコードがあると出る（MCP 記事では 0 件）。
-
-**`\n` は戻さない。** JavaScript の文字列リテラルなど、原文が本来持っているエスケープである。
-実測: 同じ記事に 4 箇所あり、戻すとコードの意味が変わる。
-
-#### fetch-proxy でも取得できないとき
-
-`fetch-proxy` は `as=md` 取得失敗時に Browser Rendering にフォールバックするため、通常の JS レンダリングはそこで解決する。それでも取得できない場合（ログイン必須等）は自前で変換する。
-素朴にタグを剥がすと次が静かに落ちる。
-
-- 見出し末尾のアンカー（`<a class=anchor>#</a>` が残り `What changed#` になる）
-- 引用の帰属（`blockquote` の外、`figcaption` / `img` の `alt` / `aria-label` にある）
-- リンクのみの箇条書きの URL
-
-**記事本体でないものは落とす。** 目次、パンくず、翻訳版へのリンク、"On this page" のような
-ページ内ナビゲーション。これらはページの付属物であって原文の内容ではないので、
-「省略しない」（§6 改変の範囲）の対象外である。
-
-#### 貼る前の点検
-
-経路によらず、**変換後のテキストに `[` `]` バッククォート 行頭 `#` `#数字` が
-残っていないか機械的に確認する。**
-
-- **`[` `]` を含むコード片は `code:<名前>` ブロックに入れる。** インデントだけでは足りない。
-  `backends: [` のような行がリンク記法として解釈され、コードが壊れた上に
-  無意味な空リンクが大量に生成される。バッククォートも同じくコード記法と衝突する。
-  `code:` の後の名前は記法上必須なので、原文に無くても付けてよい。これは構造であって改変ではない。
-- 散文中に `[` が出たら個別にバッククォートで囲む。
-- **散文中の対になったバッククォートは残す。** Cosense のインラインコード記法として正しく描画される。
-  実測: `` `Workspace` `` `` `node:fs` `` などが defuddle から降りてくる。
-  手でタグを剥がす経路ではここが平文に潰れていた。
+変換で落ちるもの（タイトルの短縮、引用の組織名、著者名、`<iframe>` のままの埋め込み）と、
+貼る前に必要な点検（`[` `]` とバッククォートの衝突、コードブロック内のエスケープ）が
+そこにまとまっている。**点検を飛ばすと空リンクが大量に生成される**ので必ず読む。
 
 ## 7. summary ページの規約
 
@@ -587,9 +491,8 @@ query MCP の認可、2026 以降の動きを調べて [yuki.icon]
 ### アイコン記法の性質（2026-08-06 に実地検証）
 
 **`[X.icon]` はリンクグラフに一切乗らない。** ページ JSON では `links` とは別の `icons` 配列に
-入り、`relatedPages.links1hop` にも現れない。実測: villagepump の `takker` は多数のページで
-アイコンとして使われているが `linked` は 14 で、`[takker.icon]` を含む `井戸端` は
-`takker` の `links1hop` に現れない。
+入り、`relatedPages.links1hop` にも現れない。実測: villagepump の `takker` はアイコンとして
+多用されているが `linked` は 14 で、`[takker.icon]` を含む `井戸端` は `links1hop` に現れない。
 
 ここから 2 つが従う。
 
@@ -597,7 +500,7 @@ query MCP の認可、2026 以降の動きを調べて [yuki.icon]
   `yuki` はプロジェクトメンバーなので、ページが無くてもアイコンは表示される。
 - **アイコンだけではキューを作れない。** 指示の検出にリンク記法のマーカーが要るのはこのためである。
 
-補助として次の 2 つが使える。
+発言の検出には次の 2 つが使える。
 
 - `browsePage` の「人間のアイコン記法」節は、**プロジェクトメンバー名に一致するアイコンだけ**を
   列挙する。ページを 1 枚読めば人間の発言の有無が分かる。
@@ -669,19 +572,7 @@ LLM の出力を LLM が要約して確信度の根拠にすると、新しい�
 ### lint（健全性チェック）
 
 Cosense では機械的に検出できる。定期的に実行する。
-
-| 検査 | コマンド |
-|---|---|
-| 未処理の指示 | `cosense list1hopLinks <projectUrl>/ingest` `.../query` `.../lint` の被リンク（§11） |
-| マーカーの付け忘れ | `cosense searchFullText <projectUrl> 'yuki.icon'` のうち、行頭にマーカーの無い行。実行はせず次の会話で確認する（§11） |
-| 孤立ページ | `cosense listPages <projectUrl> --sort linked` の末尾（`linked: 0`）。入口ページ `[このwikiについて]`、`[log]` の日付ページ、操作ページ `[ingest]` `[query]` `[lint]`、プロフィールページ `[yuki]` は被リンクを持たないのが正常なので除く |
-| 取り込み漏れの原文 | 上記のうち source 層のもの（§6 識別）で、対応する `[summary]` が未作成のもの |
-| リンク未付与の原文 | `#raw` ページのうち `cosense list1hopLinks` が summary 1 本しか返さないもの。空リンクは現れないので、疑わしければ本文を読む（§8）。`#bookmark` は本文を持たず、bookmark summary はリンクを自身の `takeaways` に持つので、どちらも対象外 |
-| 育ちすぎたハブ | `--sort linked` の先頭。pageRank 上位ページは分割を検討する |
-| 書くべきページ | `searchVector` の `exists: false`、および空リンクの被リンク数 |
-| 未解決の矛盾 | `cosense searchFullText <projectUrl> '⚠'`。source 層は除く（§9） |
-| ソースの網羅性 | `cosense browseRelatedPages <projectUrl>/summary` の表を眺める |
-| 確信度の陳腐化 | `cosense browseRelatedPages <projectUrl>/thesis` の表で `reviewed` が古いもの |
+検査項目とコマンドは `docs/lint.md` に置く。lint を回すときはそれを読む。
 
 各検査は `projects/` 下で定義されたプロジェクトごとに実行する（`<projectUrl>` は `https://scrapbox.io/niki-auth` / `https://scrapbox.io/niki-ai`）。
 
