@@ -209,8 +209,8 @@ source を wiki と同じ名前空間に置くため、識別と扱いのルー�
   空白は URL 上で `_` に変換されるため、区切り位置にアンダースコアが戻ってしまう。
   例: summary `Attention Is All You Need` / raw `📄Attention Is All You Need`。
 - **bookmark ページのタイトルは `🔖<URLのタイトル>`。** 同様に空白を入れない。例: `🔖Attention Is All You Need`。
-  タイトルは URL のタイトルそのままを使い、日付等の付加はしない。bookmark は `#bookmark` タグや保存日時を本文に持つことがある。summary を直接書く場合は `[summary]` 型で同じ `🔖` タイトルを使う（§2）。
-- **本文 1 行目は `#raw`、`#bookmark` または `[summary]`。** raw ページは `#raw`、URLのみの仮置きは `#bookmark`、要約を伴う bookmark は `[summary]`。raw の 2 行目は対応する `[summary]` ページへのリンク、仮置き bookmark の 2 行目も対応する `[summary]` へのリンク（未作成なら空リンク）。bookmark summary は自身が `[summary]` なので 2 行目以降に URL と `#bookmark` タグ、保存日時を持ち、続けて `takeaways` 等の summary 節を書く。**Infobox は `#raw` / `#bookmark` ページには書かない**（§5）。出典のメタデータは summary 側が持つ。
+  タイトルは URL のタイトルそのままを使い、日付等の付加はしない。仮置きの bookmark は `#bookmark` タグや保存日時を本文に持つことがある。summary を直接書く場合は `[summary]` 型で同じ `🔖` タイトルを使う（§2）。
+- **本文 1 行目は `#raw`、`#bookmark` または `[summary]`。** raw ページは `#raw`、URLのみの仮置きは `#bookmark`、要約を伴う bookmark は `[summary]`。raw の 2 行目は対応する `[summary]` ページへのリンク、仮置き bookmark の 2 行目も対応する `[summary]` へのリンク（未作成なら空リンク）。bookmark summary は自身が `[summary]` なので、2 行目に `#bookmark` タグを置き、続けて Infobox と `takeaways` 等の summary 節を書く（例は §7 構成）。**URL は Infobox の `url` だけに持たせ、本文に裸の URL 行を置かない**（§5）。保存日時は Infobox の `ingested` が兼ねる。**Infobox は `#raw` / `#bookmark` ページには書かない**（§5）。出典のメタデータは summary 側が持つ。
 - **どのページが source 層かは、次の 1 つの判定で決める。** タイトルが `📄` で始まる、
   または本文 1 行目が `#bookmark`。このどちらかに当たるページが source 層で、残りは wiki 層である。
   **`🔖` タイトルでも本文 1 行目が `[summary]` の bookmark summary は wiki 層**である。
@@ -306,6 +306,8 @@ PDF の論文なら本文テキストを抽出して置く。HTML 記事と扱�
 
 ### 構成
 
+raw を持つ場合。
+
 ```
 [summary]
 
@@ -332,6 +334,31 @@ quotes
 caveats
  実験は[機械翻訳]のみ。他タスクへの一般化は本論文では示されていない
 ```
+
+**bookmark summary**（`🔖` タイトルで型が `[summary]`。§6 識別）は、対応する source ページが
+別に無いぶんだけ違う。節の書き方と分量は同じなので、差分だけ示す。
+
+```
+[summary]
+#bookmark
+
+table:infobox
+ gist	（同じ）
+ kind	ブログ記事
+ ingested	2026-08-14
+ url	https://example.com/blog/mcp-authorization
+ credibility	blog
+
+takeaways
+ （同じ）
+```
+
+- **`raw` を書かない。** 降りる先の source ページが無い（§5）。
+- **`url` が URL の置き場所である。** 本文に裸の URL 行を置かない。二重に持つと必ず食い違う。
+- **`#bookmark` は 2 行目に置く。** source 層の判定は**本文 1 行目**だけを見るので、
+  1 行目が `[summary]` であるこのページは wiki 層のままである（§6 識別）。
+  このタグは「bookmark から起こした summary である」という由来の記録であって、層の印ではない。
+- 保存日時は `ingested` が兼ねる。別に日付行を持たない。
 
 ### 各節の役割
 
