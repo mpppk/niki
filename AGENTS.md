@@ -1,8 +1,14 @@
-# niboshi-llm-wiki 運用規約
+# niki 運用規約
 
 このリポジトリは **LLM が維持管理する個人リサーチ wiki** の規約（schema 層）の正本である。
-wiki の実体は Cosense プロジェクト **https://scrapbox.io/niboshi-llm-wiki** にあり、
-このリポジトリには wiki のコンテンツを置かない。
+wiki の実体は Cosense プロジェクトにあり、このリポジトリには wiki のコンテンツを置かない。
+
+管理する Cosense プロジェクトは `projects/` 下で定義する。現時点では次の 2 つ:
+
+- **niki-auth** — https://scrapbox.io/niki-auth — 認証認可に関するナレッジを管理するプロジェクト
+- **niki-ai** — https://scrapbox.io/niki-ai — AIエージェントやLLMに関するナレッジを管理するプロジェクト
+
+このファイル（`AGENTS.md`）は全プロジェクト共通の規約である。プロジェクト固有の事情がある場合は `projects/<name>/` 下に追記する。
 
 元になったアイデア: https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
 
@@ -39,7 +45,9 @@ karpathy の 3 層を Cosense 上に写像する。層の名前は原著のま�
 |---|---|
 | raw sources | Cosense の `#raw` ページ（原本。意味を変えない範囲でのみ手を入れる） |
 | wiki | Cosense のそれ以外の全ページ |
-| schema | このファイル（`AGENTS.md`） |
+| schema | このリポジトリ（`AGENTS.md` が共通規約、`projects/` 下がプロジェクト定義） |
+
+管理対象の Cosense プロジェクトは `projects/` 下のディレクトリで定義する。各 `projects/<name>/` は当該プロジェクトのローカルなメタデータや補足（`config.json` 等）を置く場所であり、wiki 本体は常に Cosense 側にある。`AGENTS.md` に書かれた規約は全プロジェクトに共通で適用し、プロジェクト固有の事情だけを `projects/<name>/` 下に追記する。
 
 Cosense はフォルダを持たない完全にフラットな名前空間である。
 **階層・分類はすべてリンクで表現する。** ディレクトリ構造を命名で模倣してはならない。
@@ -128,7 +136,7 @@ Cosense の価値はリンクグラフにある。リンクの質がそのまま
   リンクしたページが Infobox の表に捏造行として現れるため（§5）。
   他ページの本文で言及するときは平文で `summary` / `thesis` と書く。
   クリックで辿れるようにしたいときは **外部 URL 記法**
-  `[summary https://scrapbox.io/niboshi-llm-wiki/summary]` を使う。
+  `[summary https://scrapbox.io/niki-auth/summary]` のように `https://scrapbox.io/<project>/summary` を使う（`<project>` は `niki-auth` / `niki-ai` のいずれかに置き換える）。
   人間にはリンクとして見えるがリンクグラフには乗らないため、表を汚さない。
 - **操作ページ `[ingest]` `[query]` `[lint]` へも、指示行以外からリンクしない。**
   被リンクが未処理の指示のキューだから（§11）。導線には同じく外部 URL 記法を使う。
@@ -144,7 +152,7 @@ YAML frontmatter + Dataview に相当する機能。
 **その型にリンクしている全ページの値が自動で表に集計される。**
 
 ```
-cosense browseRelatedPages https://scrapbox.io/niboshi-llm-wiki/summary
+cosense browseRelatedPages https://scrapbox.io/<project>/summary
 ```
 
 で全 summary の一覧表が TSV で得られる。これが index.md の代替であり、手書きより常に正しい。
@@ -533,7 +541,7 @@ Cosense の慣習に従い、**人間は自分の発言の行末にアイコン�
 未処理の指示は**マーカーの被リンク**で引く。手書きの inbox ページは作らない（§4）。
 
 ```
-cosense list1hopLinks https://scrapbox.io/niboshi-llm-wiki/query
+cosense list1hopLinks https://scrapbox.io/<project>/query
 ```
 
 このため `[ingest]` `[query]` `[lint]` の 3 ページは実体を持たせる。本文は操作の説明と、
@@ -649,7 +657,7 @@ Cosense では機械的に検出できる。定期的に実行する。
 
 | 検査 | コマンド |
 |---|---|
-| 未処理の指示 | `cosense list1hopLinks .../ingest` `.../query` `.../lint` の被リンク（§11） |
+| 未処理の指示 | `cosense list1hopLinks <projectUrl>/ingest` `.../query` `.../lint` の被リンク（§11） |
 | マーカーの付け忘れ | `cosense searchFullText <projectUrl> 'yuki.icon'` のうち、行頭にマーカーの無い行。実行はせず次の会話で確認する（§11） |
 | 孤立ページ | `cosense listPages <projectUrl> --sort linked` の末尾（`linked: 0`）。入口ページ `[このwikiについて]`、`[log]` の日付ページ、操作ページ `[ingest]` `[query]` `[lint]`、プロフィールページ `[yuki]` は被リンクを持たないのが正常なので除く |
 | 取り込み漏れの原文 | 上記のうちタイトルが `📄` で始まるもの（summary が未作成） |
@@ -657,8 +665,10 @@ Cosense では機械的に検出できる。定期的に実行する。
 | 育ちすぎたハブ | `--sort linked` の先頭。pageRank 上位ページは分割を検討する |
 | 書くべきページ | `searchVector` の `exists: false`、および空リンクの被リンク数 |
 | 未解決の矛盾 | `cosense searchFullText <projectUrl> '⚠'`。タイトルが `📄` で始まるページは除く（§9） |
-| ソースの網羅性 | `cosense browseRelatedPages .../summary` の表を眺める |
-| 確信度の陳腐化 | `cosense browseRelatedPages .../thesis` の表で `reviewed` が古いもの |
+| ソースの網羅性 | `cosense browseRelatedPages <projectUrl>/summary` の表を眺める |
+| 確信度の陳腐化 | `cosense browseRelatedPages <projectUrl>/thesis` の表で `reviewed` が古いもの |
+
+各検査は `projects/` 下で定義されたプロジェクトごとに実行する（`<projectUrl>` は `https://scrapbox.io/niki-auth` / `https://scrapbox.io/niki-ai`）。
 
 lint では検出だけでなく、**次に読むべきソースと、次に立てるべき問いを提案する。**
 
