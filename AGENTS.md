@@ -15,7 +15,7 @@ wiki の実体は Cosense プロジェクトにあり、このリポジトリに
 ## 0. 前提
 
 - 用途は **リサーチ**（特定テーマを継続的に深掘りし、thesis を育てる）。
-- **source は Cosense のページとして保持してもよいが必須ではない**。本文を転記した `#raw` ページとして保持することも、`🔖` bookmark として URL のみを保持することもできる。bookmark はページタイトルが URL のタイトル、本文に URL を持ち、必要に応じ `#bookmark` タグや保存日時を持つ。いずれの場合も外部ストレージや git には置かない。
+- **source は Cosense のページとして保持してもよいが必須ではない**。本文を転記した `#raw` ページとして保持することも、`🔖` bookmark として URL のみを保持することもできる。bookmark はページタイトルが URL のタイトルで、本文に URL と保存日時を持つ。summary を書かない仮置きは本文 1 行目が `#bookmark`、summary を直接書く場合は `[summary]` 型で `#bookmark` タグを持つ（§6）。いずれの場合も外部ストレージや git には置かない。
 - wiki は LLM が書き、人間は読む。人間の仕事はソースの選定・探索・問いを立てること。
 - 操作は `cosense` CLI（`@helpfeel/cosense-cli`）経由で行う。詳細は `cosense <command> --help`。
 - **ページの新規作成・編集はユーザーが明示的に指示した時のみ行う。** 閲覧・調査は随時よい。
@@ -173,7 +173,7 @@ cosense browseRelatedPages https://scrapbox.io/<project>/summary
   誤字修正でも `Updated` は更新されてしまうため、陳腐化の検出には使えない（§12 lint）。
 - **source ページ（`#raw` / `#bookmark`）に Infobox を持たせない。** `ingested` / `url` は summary 側と重複し、
   持たせても下記の制約でノイズが増えるだけである。
-- `raw` は対応する source ページ（`📄` または `🔖`）へのリンク。bookmark の summary を直接書く場合（`🔖` タイトルで型が `[summary]`）は `raw` を省略するか自身へのリンクとし、`url` で URL を保持する。
+- `raw` は対応する source ページ（`📄` または `🔖`）へのリンク。bookmark の summary を直接書く場合（`🔖` タイトルで型が `[summary]`）は `raw` を省略し、`url` で URL を保持する。対応する source ページが別に無いので、自身へのリンクは書かない。
 
 ### 制約（2026-08-05 に実地検証）
 
@@ -335,9 +335,11 @@ curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=html"  # 必要に応じ生 HT
   実測: 引用 17 件すべてで組織名が消えた。元 HTML（`as=html`）から拾い直し、
   `— 氏名 / 肩書 / 組織` の形に整える。
   **誰が言ったかは `credibility` と `caveats` に直結する**ので、ここは省略しない。
-- **著者名が取れないことがある。** `as=md` は本文のみを返し `author` を含まないことがある。実測: MCP 記事では `author` が取れたが、
-  Cloudflare 記事では欠落し、本文の署名行ごと落ちた。元 HTML（`as=html`）の署名から拾い直す。
-  Zenn は frontmatter に `author` を持たず、3 記事とも欠落した。
+- **著者名は `as=md` からは取れない。** `as=md` は本文のみを返すので、`author` は常に
+  元 HTML（`as=html`）の署名やメタタグから拾い直す。frontmatter が付く前提で書かない。
+  本文に署名行が残っていれば `as=md` からも読めるが、当てにはできない。
+  実測: Cloudflare 記事は本文の署名行ごと落ちた。Zenn の 3 記事は defuddle を直接呼んでいた頃も
+  frontmatter に `author` を持たず、いずれも元 HTML から拾う必要があった。
 - **埋め込みが `<iframe>` タグのまま残ることがある。** defuddle は中身を展開せず、`fetch-proxy` は Browser Rendering にフォールバックするが、それでも残る場合がある。
   実測: Zenn の mermaid 図とリンクカードが計 10 件、`<iframe src="embed.zenn.studio/...">` の
   1 行として残った。**図がそのまま失われる**ので、元 HTML（`as=html`）から拾い直す。
@@ -480,8 +482,10 @@ source ページを常に読むと、その分だけ確実にコンテキスト�
   該当行の直下にインデントして `⚠ [<summary のタイトル>] では〜としており矛盾` と書く。
 - 矛盾が解決したら、解決の根拠を書いた上で整理する。
 - `cosense searchFullText <projectUrl> '⚠'` で未解決の矛盾を一覧できる。
-  **結果からタイトルが `📄` または `🔖` で始まるページを除く。** 矛盾の注記は wiki 層にしか書かないので、
-  source に出る `⚠` は原文が元から持っていた記号である（§6 改変の範囲）。
+  **結果からタイトルが `📄` で始まるページと、本文 1 行目が `#bookmark` のページを除く。
+  `🔖` タイトルでも型が `[summary]` の bookmark summary は除かない**（§8 と同じ判定）。
+  矛盾の注記は wiki 層にしか書かないので、source に出る `⚠` は原文が元から持っていた記号である
+  （§6 改変の範囲）。bookmark summary は `🔖` で始まるが wiki 層なので、注記はそこにも書かれうる。
   この検索は `⚠️`（異体字セレクタ `U+FE0F` 付き）にも当たる。Cosense の全文検索は空白を
   区切りとして扱うため、`'⚠ '` のように末尾へ空白を足しても絞り込めない（2026-08-06 実地検証）。
   同じ理由で、summary の `quotes` に `⚠️` を含む引用があると偽陽性になる。
@@ -665,10 +669,10 @@ Cosense では機械的に検出できる。定期的に実行する。
 | マーカーの付け忘れ | `cosense searchFullText <projectUrl> 'yuki.icon'` のうち、行頭にマーカーの無い行。実行はせず次の会話で確認する（§11） |
 | 孤立ページ | `cosense listPages <projectUrl> --sort linked` の末尾（`linked: 0`）。入口ページ `[このwikiについて]`、`[log]` の日付ページ、操作ページ `[ingest]` `[query]` `[lint]`、プロフィールページ `[yuki]` は被リンクを持たないのが正常なので除く |
 | 取り込み漏れの原文 | 上記のうちタイトルが `📄` で始まるもの、または本文 1 行目が `#bookmark` のもの（対応する `[summary]` が未作成）。`🔖` タイトルで型が `[summary]` の bookmark summary は含まない |
-| リンク未付与の原文 | 各 source の `cosense list1hopLinks` が summary 1 本しか返さないもの。空リンクは現れないので、疑わしければ本文を読む（§8） |
+| リンク未付与の原文 | `#raw` ページのうち `cosense list1hopLinks` が summary 1 本しか返さないもの。空リンクは現れないので、疑わしければ本文を読む（§8）。`#bookmark` ページは本文を持たず summary 1 本だけなのが正常なので除く。bookmark summary のリンクは自身の `takeaways` にあるので対象外 |
 | 育ちすぎたハブ | `--sort linked` の先頭。pageRank 上位ページは分割を検討する |
 | 書くべきページ | `searchVector` の `exists: false`、および空リンクの被リンク数 |
-| 未解決の矛盾 | `cosense searchFullText <projectUrl> '⚠'`。タイトルが `📄` または `🔖` で始まるページは除く（§9） |
+| 未解決の矛盾 | `cosense searchFullText <projectUrl> '⚠'`。タイトルが `📄` で始まるページと本文 1 行目が `#bookmark` のページは除く。bookmark summary は除かない（§9） |
 | ソースの網羅性 | `cosense browseRelatedPages <projectUrl>/summary` の表を眺める |
 | 確信度の陳腐化 | `cosense browseRelatedPages <projectUrl>/thesis` の表で `reviewed` が古いもの |
 
