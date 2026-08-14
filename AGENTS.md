@@ -62,8 +62,8 @@ Cosense はフォルダを持たない完全にフラットな名前空間であ
 | 型 | 用途 | 原著での扱い |
 |---|---|---|
 | `#raw` | 取り込んだソースの原本。1 ソース 1 ページ。型のみハッシュタグ記法（§6） | 別レイヤー。ページ型ではない |
-| `#bookmark` | URL のみを保持する source。1 ソース 1 ページ。型のみハッシュタグ記法（§6） | 新設。raw の軽量な代替 |
-| `[summary]` | 1 ソースの要約・takeaways・引用。対応する `📄` または `🔖` ページへリンクする | "summary page" |
+| `#bookmark` | URL のみを保持する source。1 ソース 1 ページ。summary を書かない場合の仮置き。型のみハッシュタグ記法（§6） | 新設。raw の軽量な代替 |
+| `[summary]` | 1 ソースの要約・takeaways・引用。raw の場合は対応する `📄` ページへリンクし、bookmark の場合は `🔖` タイトルで summary 自体に URL を持つ（§6） | "summary page" |
 | `[concept]` | 概念・手法・用語・アルゴリズム | "concept pages" |
 | `[person]` | 著者・研究者 | "entity pages" を細分 |
 | `[organization]` | 研究機関・企業 | "entity pages" を細分 |
@@ -114,7 +114,7 @@ Cosense ではタイトルが実質的な ID かつリンク先であり、表�
 - **`/` で始めない。** `[/project/page]` は他プロジェクトへのリンク記法と衝突する。
 - **プレフィックスで疑似階層を作らない。** `source/xxx`、`concept/xxx` などは禁止。型で表す。
 - **summary ページのタイトルは原題そのまま。** 日付や連番のプレフィックスは付けない。
-  同名が衝突する場合のみ末尾に ` (2019)` のように発行年を足す。
+  同名が衝突する場合のみ末尾に ` (2019)` のように発行年を足す。ただし bookmark の summary は例外で、タイトル先頭に `🔖` を付け URL のタイトルをそのまま使う（§6）。
 - **原文ページはタイトル先頭に `📄` を付ける。** 接頭辞による識別はこれだけが例外である。
   疑似階層ではなくレイヤーの識別子なので、上の禁止（`concept/xxx` 等）とは目的が違う。
   検索結果から原文を機械的に選り分けるために使う（§8）。
@@ -173,7 +173,7 @@ cosense browseRelatedPages https://scrapbox.io/<project>/summary
   誤字修正でも `Updated` は更新されてしまうため、陳腐化の検出には使えない（§12 lint）。
 - **source ページ（`#raw` / `#bookmark`）に Infobox を持たせない。** `ingested` / `url` は summary 側と重複し、
   持たせても下記の制約でノイズが増えるだけである。
-- `raw` は対応する source ページ（`📄` または `🔖`）へのリンク。bookmark の場合も同じキーを使う。
+- `raw` は対応する source ページ（`📄` または `🔖`）へのリンク。bookmark の summary を直接書く場合（`🔖` タイトルで型が `[summary]`）は `raw` を省略するか自身へのリンクとし、`url` で URL を保持する。
 
 ### 制約（2026-08-05 に実地検証）
 
@@ -209,9 +209,8 @@ source を wiki と同じ名前空間に置くため、識別と扱いのルー�
   空白は URL 上で `_` に変換されるため、区切り位置にアンダースコアが戻ってしまう。
   例: summary `Attention Is All You Need` / raw `📄Attention Is All You Need`。
 - **bookmark ページのタイトルは `🔖<URLのタイトル>`。** 同様に空白を入れない。例: `🔖Attention Is All You Need`。
-  タイトルは URL のタイトルそのままを使い、日付等の付加はしない。bookmark は `#bookmark` タグや保存日時を本文に持つことがある。
-- **本文 1 行目は `#raw` または `#bookmark`。** 2 行目は対応する `[summary]` ページへのリンク。
-  raw の場合は原文本文をその下に置く。bookmark の場合は本文に URL を持ち、必要に応じ保存日時を持つ。**Infobox は書かない**（§5）。出典のメタデータは summary 側が持つ。
+  タイトルは URL のタイトルそのままを使い、日付等の付加はしない。bookmark は `#bookmark` タグや保存日時を本文に持つことがある。summary を直接書く場合は `[summary]` 型で同じ `🔖` タイトルを使う（§2）。
+- **本文 1 行目は `#raw`、`#bookmark` または `[summary]`。** raw ページは `#raw`、URLのみの仮置きは `#bookmark`、要約を伴う bookmark は `[summary]`。raw の 2 行目は対応する `[summary]` ページへのリンク、仮置き bookmark の 2 行目も対応する `[summary]` へのリンク（未作成なら空リンク）。bookmark summary は自身が `[summary]` なので 2 行目以降に URL と `#bookmark` タグ、保存日時を持ち、続けて `takeaways` 等の summary 節を書く。**Infobox は `#raw` / `#bookmark` ページには書かない**（§5）。出典のメタデータは summary 側が持つ。
 - 極端に長い原文は章単位で分割する。連番は末尾に付ける。例: `📄<原題> (1/3)`。
   上限を超えると `previewEdit` が `request entity too large` で 400 を返す。
 - **上限は文字数ではなく、バイト数と行数の組み合わせで決まる**（2026-08-08 に実測）。
@@ -458,7 +457,7 @@ source が同じ名前空間にあるため、検索結果は wiki 層と source
    識別子のように文字列が似ていて意味が近いページ群では特に区別できない。
    特定タイトルが存在するかは `readPage` でページ本文を読んで確かめる。
 2. `cosense searchFullText <projectUrl> <query>` — 語句が確定しているとき。
-   **タイトルが `📄` または `🔖` で始まるページは、この段階では読み飛ばす。**
+   **タイトルが `📄` で始まるページ、および本文 1 行目が `#bookmark` のページは、この段階では読み飛ばす。`🔖` タイトルでも型が `[summary]` の bookmark summary は読み飛ばさない。**
 3. `cosense browsePage <pageUrl>` で本体を読む。
 4. `cosense list1hopLinks` / `search1hopLinks` / `search2hopLinks` で周辺を辿る。
    単独ページでは見えない文脈がここで浮かぶ。
@@ -628,11 +627,11 @@ LLM の出力を LLM が要約して確信度の根拠にすると、新しい�
 
 ### ingest（ソースの取り込み）
 
-1. source ページを作る。全文を保持する場合は `[📄<原題>]` として 1 行目 `#raw` で原文テキストをそのまま置く。URL のみでよい場合は `[🔖<URLのタイトル>]` として 1 行目 `#bookmark` で本文に URL と保存日時を持つ。PDF もテキストを抽出して raw に置き、ファイル自体は URL で参照する（§6）。
+1. source ページを作る。全文を保持する場合は `[📄<原題>]` として 1 行目 `#raw` で原文テキストをそのまま置く。URL のみでよい場合は `[🔖<URLのタイトル>]` として 1 行目 `#bookmark` で本文に URL と保存日時を持つ。summary を同時に書く bookmark については `[🔖<URLのタイトル>]` を `[summary]` 型で作り、本文に URL と `#bookmark` タグ、保存日時に続けて summary 節を書く（§6）。PDF もテキストを抽出して raw に置き、ファイル自体は URL で参照する（§6）。
 2. source（raw の本文または bookmark の URL 先）を読み、takeaways をユーザーと会話して確認する。
-3. `[<原題>]` summary ページを §7 の構成で作る。**本文中の固有名詞・概念はリンクにする。**
+3. summary ページを §7 の構成で作る。raw の場合は `[<原題>]`、bookmark で要約を同時に行う場合は上記 1 で作成した `[🔖<URLのタイトル>]` がそれに当たる。**本文中の固有名詞・概念はリンクにする。**
 4. source ページに戻り、その source が実際に論じている concept / person / organization に
-   リンクを張る（§6）。
+   リンクを張る（§6）。bookmark summary の場合は自身の `takeaways` 内のリンクで兼ねる。
 5. 出てきた `[concept]` `[person]` `[organization]` ページを新規作成、または既存ページに追記する。
 6. 関係する `[thesis]` の `supported_by` / `refuted_by` / `confidence` / `reviewed` を更新する。
    新しいテーゼが立つなら `[thesis]` ページを新規作成し、
@@ -664,7 +663,7 @@ Cosense では機械的に検出できる。定期的に実行する。
 | 未処理の指示 | `cosense list1hopLinks <projectUrl>/ingest` `.../query` `.../lint` の被リンク（§11） |
 | マーカーの付け忘れ | `cosense searchFullText <projectUrl> 'yuki.icon'` のうち、行頭にマーカーの無い行。実行はせず次の会話で確認する（§11） |
 | 孤立ページ | `cosense listPages <projectUrl> --sort linked` の末尾（`linked: 0`）。入口ページ `[このwikiについて]`、`[log]` の日付ページ、操作ページ `[ingest]` `[query]` `[lint]`、プロフィールページ `[yuki]` は被リンクを持たないのが正常なので除く |
-| 取り込み漏れの原文 | 上記のうちタイトルが `📄` または `🔖` で始まるもの（summary が未作成） |
+| 取り込み漏れの原文 | 上記のうちタイトルが `📄` で始まるもの、または本文 1 行目が `#bookmark` のもの（対応する `[summary]` が未作成）。`🔖` タイトルで型が `[summary]` の bookmark summary は含まない |
 | リンク未付与の原文 | 各 source の `cosense list1hopLinks` が summary 1 本しか返さないもの。空リンクは現れないので、疑わしければ本文を読む（§8） |
 | 育ちすぎたハブ | `--sort linked` の先頭。pageRank 上位ページは分割を検討する |
 | 書くべきページ | `searchVector` の `exists: false`、および空リンクの被リンク数 |
