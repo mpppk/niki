@@ -8,16 +8,18 @@
 
 **`fetch-proxy`（https://github.com/mpppk/fetch-proxy）で取得してから Cosense 記法に写す。**
 
-`fetch-proxy` は Cloudflare Workers 上で任意の URL を取得するプロキシで、`as=md` で defuddle による本文抽出→Markdown 変換（失敗時は Browser Rendering に自動フォールバック）、`as=title` で `og:title` 優先のタイトル抽出を行う。karpathy が勧める Obsidian Web Clipper の抽出エンジン（defuddle）をサーバ側で実行しつつ CORS 対応をまとめて扱えるため、直接 `defuddle.md` を呼ぶより安定する。
+`fetch-proxy` は Cloudflare Workers 上で任意の URL を取得するプロキシで、`as=md` で defuddle による本文抽出→Markdown 変換（失敗時は Browser Rendering に自動フォールバック）、`as=meta` でメタデータを JSON で返す。karpathy が勧める Obsidian Web Clipper の抽出エンジン（defuddle）をサーバ側で実行しつつ CORS 対応をまとめて扱えるため、直接 `defuddle.md` を呼ぶより安定する。
 
 ```
 curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=md"    # Markdown 本文
-curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=title" # タイトル（og:title 優先）
+curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=meta"  # メタデータ JSON（title / ogTitle / ogDescription / ogSiteName / ogImage）
 curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=html"  # 必要に応じ生 HTML
 # 例: curl -sSL "https://fetch.nibo.sh/example.com/blog/post?as=md"
 ```
 
-`as=md` は本文のみの Markdown を返す（host 版 defuddle のような frontmatter は付かない）。`as=title` で得たタイトルと合わせ、summary の Infobox に流す。`author` / `published` / `description` は可能なら `as=html` で取得した HTML から補う。`source` は `url` に対応する。
+`as=md` は本文のみの Markdown を返す（host 版 defuddle のような frontmatter は付かない）。`as=meta` の `ogTitle`（無ければ `title`）で得たタイトルと合わせ、summary の Infobox に流す。`as=meta` に `author` と `published` は含まれないので、`as=html` で取得した HTML から補う（`<meta property="article:published_time">`、署名行、埋め込み JSON 等）。`source` は `url` に対応する。
+
+**`as=title` は廃止された。** 呼ぶと本文の代わりに `as=title has been removed. use as=meta and read ogTitle, falling back to title` が返る（2026-08-15 実測）。
 
 見出しのアンカー、目次、パンくず、ナビゲーション、コードのフェンス判定は `as=md` の時点で処理済みになる。
 
@@ -43,9 +45,10 @@ curl -sSL "https://fetch.nibo.sh/<host>/<path>?as=html"  # 必要に応じ生 HT
 
 `fetch-proxy` の `as=md` も内部では defuddle を使うため、2026-08-05 に 2 記事で実測した次の落としは同様に自分で拾うことがある。
 
-- **タイトルが短縮されることがある。** `as=md` の先頭行だけでなく **`as=title`（`og:title` 優先）の結果を使う。**
+- **タイトルが短縮されることがある。** `as=md` の先頭行ではなく **`as=meta` の `ogTitle`（無ければ `title`）** を使う。
   実測: `Your agent needs a computer, not a container` と出るが、
-  og:title には `— introducing @cloudflare/computer` まで含まれる。§3 の「原題そのまま」に反する。`fetch-proxy` は `as=title` で優先順位を解決しているため、そちらを正とする。
+  og:title には `— introducing @cloudflare/computer` まで含まれる。§3 の「原題そのまま」に反する。
+  `title` はサイト名が付いた `... | Cloudflare Blog` の形になることがあるので、`ogTitle` がある限りそちらを正とする。
 - **引用の組織名が落ちる。** 発言者名と肩書は残るが、組織名はロゴ画像の
   `aria-label` / `alt` にあり、defuddle はロゴを装飾として捨てる。
   実測: 引用 17 件すべてで組織名が消えた。元 HTML（`as=html`）から拾い直し、
