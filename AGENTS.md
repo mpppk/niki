@@ -3,10 +3,11 @@
 このリポジトリは **LLM が維持管理する個人リサーチ wiki** の規約（schema 層）の正本である。
 wiki の実体は Cosense プロジェクトにあり、このリポジトリには wiki のコンテンツを置かない。
 
-管理する Cosense プロジェクトは `projects/` 下で定義する。現時点では次の 2 つ:
+管理する Cosense プロジェクトは `projects/` 下で定義する。現時点では次の 3 つ:
 
 - **niki-auth** — https://scrapbox.io/niki-auth — 認証認可に関するナレッジを管理するプロジェクト
 - **niki-ai** — https://scrapbox.io/niki-ai — AIエージェントやLLMに関するナレッジを管理するプロジェクト
+- **niki-cs** — https://scrapbox.io/niki-cs — カスタマーサポートを行うSaaSに関するナレッジを管理するプロジェクト
 
 このファイル（`AGENTS.md`）は全プロジェクト共通の規約である。プロジェクト固有の事情がある場合は `projects/<name>/` 下に追記する。
 
@@ -142,7 +143,7 @@ Cosense の価値はリンクグラフにある。リンクの質がそのまま
   リンクしたページが Infobox の表に捏造行として現れるため（§5）。
   他ページの本文で言及するときは平文で `summary` / `thesis` と書く。
   クリックで辿れるようにしたいときは **外部 URL 記法**
-  `[summary https://scrapbox.io/niki-auth/summary]` のように `https://scrapbox.io/<project>/summary` を使う（`<project>` は `niki-auth` / `niki-ai` のいずれかに置き換える）。
+  `[summary https://scrapbox.io/niki-auth/summary]` のように `https://scrapbox.io/<project>/summary` を使う（`<project>` は `niki-auth` / `niki-ai` / `niki-cs` のいずれかに置き換える）。
   人間にはリンクとして見えるがリンクグラフには乗らないため、表を汚さない。
 - **操作ページ `[ingest]` `[query]` `[lint]` へも、指示行以外からリンクしない。**
   被リンクが未処理の指示のキューだから（§11）。導線には同じく外部 URL 記法を使う。
@@ -601,7 +602,7 @@ LLM の出力を LLM が要約して確信度の根拠にすると、新しい�
 Cosense では機械的に検出できる。定期的に実行する。
 検査項目とコマンドは `docs/lint.md` に置く。lint を回すときはそれを読む。
 
-各検査は `projects/` 下で定義されたプロジェクトごとに実行する（`<projectUrl>` は `https://scrapbox.io/niki-auth` / `https://scrapbox.io/niki-ai`）。
+各検査は `projects/` 下で定義されたプロジェクトごとに実行する（`<projectUrl>` は `https://scrapbox.io/niki-auth` / `https://scrapbox.io/niki-ai` / `https://scrapbox.io/niki-cs`）。
 
 lint では検出だけでなく、**次に読むべきソースと、次に立てるべき問いを提案する。**
 
