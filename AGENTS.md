@@ -68,7 +68,7 @@ Cosense はフォルダを持たない完全にフラットな名前空間であ
 |---|---|---|
 | `#raw` | 取り込んだソースの原本。1 ソース 1 ページ。型のみハッシュタグ記法（§6） | 別レイヤー。ページ型ではない |
 | `#bookmark` | URL のみを保持する source。1 ソース 1 ページ。summary を書かない場合の仮置き。型のみハッシュタグ記法（§6） | 新設。raw の軽量な代替 |
-| `[summary]` | 1 ソースの要約・takeaways・引用。raw の場合は対応する `📄` ページへリンクし、bookmark の場合は `🔖` タイトルで summary 自体に URL を持つ（§6） | "summary page" |
+| `[summary]` | 1 ソースの要約・takeaways・引用・参照先。raw の場合は対応する `📄` ページへリンクし、bookmark の場合は `🔖` タイトルで summary 自体に URL を持つ（§6） | "summary page" |
 | `[concept]` | 概念・手法・用語・アルゴリズム | "concept pages" |
 | `[person]` | 著者・研究者 | "entity pages" を細分 |
 | `[organization]` | 研究機関・企業 | "entity pages" を細分 |
@@ -211,7 +211,8 @@ source を wiki と同じ名前空間に置くため、識別と扱いのルー�
   例: summary `Attention Is All You Need` / raw `📄Attention Is All You Need`。
 - **bookmark ページのタイトルは `🔖<URLのタイトル>`。** 同様に空白を入れない。例: `🔖Attention Is All You Need`。
   タイトルは URL のタイトルそのままを使い、日付等の付加はしない。仮置きの bookmark は `#bookmark` タグや保存日時を本文に持つことがある。summary を直接書く場合は `[summary]` 型で同じ `🔖` タイトルを使う（§2）。
-- **本文 1 行目は `#raw`、`#bookmark` または `[summary]`。** raw ページは `#raw`、URLのみの仮置きは `#bookmark`、要約を伴う bookmark は `[summary]`。raw の 2 行目は対応する `[summary]` ページへのリンク、仮置き bookmark の 2 行目も対応する `[summary]` へのリンク（未作成なら空リンク）。bookmark summary は自身が `[summary]` なので、2 行目に `#bookmark` タグを置き、続けて Infobox と `takeaways` 等の summary 節を書く（例は §7 構成）。**URL は Infobox の `url` だけに持たせ、本文に裸の URL 行を置かない**（§5）。保存日時は Infobox の `ingested` が兼ねる。**Infobox は `#raw` / `#bookmark` ページには書かない**（§5）。出典のメタデータは summary 側が持つ。
+- **本文 1 行目は `#raw`、`#bookmark` または `[summary]`。** raw ページは `#raw`、URLのみの仮置きは `#bookmark`、要約を伴う bookmark は `[summary]`。raw の 2 行目は対応する `[summary]` ページへのリンク、仮置き bookmark の 2 行目も対応する `[summary]` へのリンク（未作成なら空リンク）。bookmark summary は自身が `[summary]` なので、2 行目に `#bookmark` タグを置き、続けて Infobox と `takeaways` 等の summary 節を書く（例は §7 構成）。**そのソース自身の URL は Infobox の `url` だけに持たせ、本文に裸の URL 行を置かない**（§5）。
+  他のソースを指す URL は summary の `references` に置く（§7）。保存日時は Infobox の `ingested` が兼ねる。**Infobox は `#raw` / `#bookmark` ページには書かない**（§5）。出典のメタデータは summary 側が持つ。
 - **どのページが source 層かは、次の 1 つの判定で決める。** タイトルが `📄` で始まる、
   または本文 1 行目が `#bookmark`。このどちらかに当たるページが source 層で、残りは wiki 層である。
   **`🔖` タイトルでも本文 1 行目が `[summary]` の bookmark summary は wiki 層**である。
@@ -334,6 +335,12 @@ quotes
 
 caveats
  実験は[機械翻訳]のみ。他タスクへの一般化は本論文では示されていない
+
+references
+ [Neural Machine Translation by Jointly Learning to Align and Translate https://arxiv.org/abs/1409.0473]
+  原文が[Attention]の初出として挙げている
+ [Layer Normalization https://arxiv.org/abs/1607.06450]
+  残差接続の後段で使われる。実装まで追うなら次はここ
 ```
 
 **bookmark summary**（`🔖` タイトルで型が `[summary]`。§6 識別）は、対応する source ページが
@@ -355,7 +362,8 @@ takeaways
 ```
 
 - **`raw` を書かない。** 降りる先の source ページが無い（§5）。
-- **`url` が URL の置き場所である。** 本文に裸の URL 行を置かない。二重に持つと必ず食い違う。
+- **`url` がそのソース自身の URL の置き場所である。** 本文に裸の URL 行を置かない。
+  二重に持つと必ず食い違う。他のソースを指す URL は `references` に置く（下記）。
 - **`#bookmark` は 2 行目に置く。** source 層の判定は**本文 1 行目**だけを見るので、
   1 行目が `[summary]` であるこのページは wiki 層のままである（§6 識別）。
   このタグは「bookmark から起こした summary である」という由来の記録であって、層の印ではない。
@@ -373,6 +381,29 @@ takeaways
   毎回原文ページから探し直すとコンテキストを浪費するため、ここに置いておく。
 - **`caveats`** — そのソースの限界。検証範囲・時点・サンプル・利益相反。
   リサーチでは「**何が言えないか**」が `[thesis]` の `confidence` を決める。
+- **`references`** — そのソースの**外側**にある URL を集める。入るものは 3 種類:
+  ①原文が挙げている重要な参照先（引用文献・仕様・PDF）、②この summary を書くために自分が辿った URL、
+  ③深掘りするときに次に読むべき URL。**次の ingest の候補リスト**であり、
+  空リンクが「次に書くべきページ」のキューであるのと同じ役割を、まだ wiki に無い URL に対して果たす（§4）。
+
+### references の書き方
+
+- **必ずラベルを付けて `[<ラベル> <URL>]` と書く。** ブラケットの中が URL だけの行は
+  Cosense が画像として埋め込もうとする（§6 ファイル）。ラベルは原題・仕様名にする。
+- **外部リンク記法はリンクグラフに乗らない**（§4）。何件書いても被リンクと Infobox は汚れない。
+- **既に wiki にあるソースは、URL ではなくページリンク `[<summary のタイトル>]` で書く。**
+  URL はその summary の Infobox `url` が持っているので、重ねて持つと必ず食い違う。
+  ページリンクはリンクグラフに乗るため、ソース間の参照関係がそのまま辿れるようになる。
+- **そのソース自身の URL は書かない。** Infobox の `url` の役目である（§7 bookmark summary）。
+- 子行に一言添え、**原文が挙げていたものか、自分の探索で辿ったものかが分かるように書く。**
+  後者は原文の裏取りにならないので、区別が要る。
+- 5 件程度、多くても 10 件まで。**原文の参考文献一覧を丸写ししない。**
+  全部は原文ページにあるので、ここには**また辿る可能性があるものだけ**を残す。
+- `credibility` が `generated` な調査結果ページの summary では、
+  本文中の一次資料のうち重要なものをここに上げる。
+  §11 の「次に読むべき一次資料の索引」がこの節で具体化する。
+- **Infobox のキーにはしない。** 値が複数行になるうえ、Infobox の抽出は LLM ベースで
+  転記が保証されない（§5）。`takeaways` と同じく節として持つ。
 
 ### 分量
 
@@ -385,6 +416,7 @@ takeaways
 - 支持／反証する `[thesis]` の列挙。極性は `[thesis]` 側の `supported_by` / `refuted_by` に
   一元化する。そちらから張られたリンクが summary の被リンクに出るので、
   両方に書くと必ず食い違う。
+- 原文の参考文献一覧の丸写し（`references` は次に読むものだけ。全部は原文ページにある）
 - 「関連ページ」節（§4）
 
 ## 8. 検索の順序
@@ -573,6 +605,7 @@ LLM の出力を LLM が要約して確信度の根拠にすると、新しい�
 2. source（raw の本文または bookmark の URL 先）を読み、takeaways をユーザーと会話して確認する。
 3. summary ページを §7 の構成で作る。raw の場合は `[<原題>]` を新規に作り、
    bookmark summary の場合は手順 1 で作ったページがそれに当たる。**本文中の固有名詞・概念はリンクにする。**
+   読む過程で出てきた参照先 URL は、その場で `references` に残す（§7）。後から原文を読み直すことになる。
 4. source ページに戻り、その source が実際に論じている concept / person / organization に
    リンクを張る（§6）。bookmark summary の場合は自身の `takeaways` 内のリンクで兼ねる。
 5. 出てきた `[concept]` `[person]` `[organization]` ページを新規作成、または既存ページに追記する。
@@ -614,6 +647,7 @@ lint では検出だけでなく、**次に読むべきソースと、次に立�
 - タイトルのプレフィックスによる疑似階層（source の `📄` / `🔖` のみ例外。§3）
 - 原文の要約・省略・言い換え（誤字修正は可。§6）
 - 原文からの無差別なリンク付与（論じている対象に限る。§6）
+- `references` への参考文献一覧の丸写し、およびラベルの無い URL 行（§7）
 - `#raw` / `#bookmark` 以外のハッシュタグ記法
 - 巨大な 1 ページ（分割してリンクした方がグラフとして価値が出る）
 - ユーザーの発言行の書き換え（マーカーの平文化のみ例外。§11）
