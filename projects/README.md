@@ -7,6 +7,7 @@
 - `niki-auth/` — https://scrapbox.io/niki-auth — 認証認可に関するナレッジを管理するプロジェクト
 - `niki-ai/` — https://scrapbox.io/niki-ai — AIエージェントやLLMに関するナレッジを管理するプロジェクト
 - `niki-cs/` — https://scrapbox.io/niki-cs — カスタマーサポートを行うSaaSに関するナレッジを管理するプロジェクト
+- `niki-tech/` — https://scrapbox.io/niki-tech — 認証認可やAI以外の技術一般に関するナレッジを管理するプロジェクト
 
 ## 構成
 
@@ -17,6 +18,8 @@ projects/
   niki-ai/
     config.json
   niki-cs/
+    config.json
+  niki-tech/
     config.json
 ```
 

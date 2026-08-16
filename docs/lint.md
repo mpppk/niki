@@ -20,6 +20,6 @@ Cosense では機械的に検出できる。定期的に実行する。
 | ソースの網羅性 | `cosense browseRelatedPages <projectUrl>/summary` の表を眺める |
 | 確信度の陳腐化 | `cosense browseRelatedPages <projectUrl>/thesis` の表で `reviewed` が古いもの |
 
-各検査は `projects/` 下で定義されたプロジェクトごとに実行する（`<projectUrl>` は `https://scrapbox.io/niki-auth` / `https://scrapbox.io/niki-ai` / `https://scrapbox.io/niki-cs`）。
+各検査は `projects/` 下で定義されたプロジェクトごとに実行する（`<projectUrl>` は `https://scrapbox.io/niki-auth` / `https://scrapbox.io/niki-ai` / `https://scrapbox.io/niki-cs` / `https://scrapbox.io/niki-tech`）。
 
 lint では検出だけでなく、**次に読むべきソースと、次に立てるべき問いを提案する。**
