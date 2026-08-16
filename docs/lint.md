@@ -18,6 +18,7 @@ Cosense では機械的に検出できる。定期的に実行する。
 | 書くべきページ | `searchVector` の `exists: false`、および空リンクの被リンク数 |
 | 未解決の矛盾 | `cosense searchFullText <projectUrl> '⚠'`。source 層は除く（§9） |
 | ソースの網羅性 | `cosense browseRelatedPages <projectUrl>/summary` の表を眺める |
+| 未読の参照先 | `cosense searchFullText <projectUrl> 'references'` で `references` 節を持つ summary を引き、まだ ingest していない URL を「次に読むべきソース」の候補にする（§7） |
 | 確信度の陳腐化 | `cosense browseRelatedPages <projectUrl>/thesis` の表で `reviewed` が古いもの |
 
 各検査は `projects/` 下で定義されたプロジェクトごとに実行する（`<projectUrl>` は `https://scrapbox.io/niki-auth` / `https://scrapbox.io/niki-ai` / `https://scrapbox.io/niki-cs`）。
