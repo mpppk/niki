@@ -11,6 +11,7 @@ Cosense では機械的に検出できる。定期的に実行する。
 |---|---|
 | 未処理の指示 | `cosense list1hopLinks <projectUrl>/ingest` `.../query` `.../lint` の被リンク（§11） |
 | マーカーの付け忘れ | `cosense searchFullText <projectUrl> 'yuki.icon'` のうち、行頭にマーカーの無い行。実行はせず次の会話で確認する（§11） |
+| 処理済み指示の残骸 | 同じ検索結果のうち、`ingest [yuki.icon]` のように平文化した操作名と署名しか残っていない行。実行後に情報を持たない指示は行ごと消すのが規約なので（§11）、消し忘れとして片付ける。子行に結果リンクがあれば、その行の位置に繰り上げてから消す |
 | 孤立ページ | `cosense listPages <projectUrl> --sort linked` の末尾（`linked: 0`）。入口ページ `[このwikiについて]`、`[log]` の日付ページ、操作ページ `[ingest]` `[query]` `[lint]`、プロフィールページ `[yuki]` は被リンクを持たないのが正常なので除く |
 | 取り込み漏れの原文 | 上記のうち source 層のもの（§6 識別）で、対応する `[summary]` が未作成のもの |
 | リンク未付与の原文 | `#raw` ページのうち `cosense list1hopLinks` が summary 1 本しか返さないもの。空リンクは現れないので、疑わしければ本文を読む（§8）。`#bookmark` は本文を持たず、bookmark summary はリンクを自身の `takeaways` に持つので、どちらも対象外 |
